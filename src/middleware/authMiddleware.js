@@ -1,0 +1,25 @@
+import { verifyAccessToken } from "../jwt/jwt-service.js";
+
+export default function authMiddleware(req, res, next) {
+     const authHeader = req.headers.authorization;
+     if (!authHeader || !authHeader.startsWith("Bearer ")) {
+       return res.status(401).json({
+         message: "Unauthorized: No access token provided.",
+       });
+     }
+     const accessToken = authHeader.substring(7);
+     try {
+       const decodedToken = verifyAccessToken(accessToken);
+       req.user = {
+         id: decodedToken.id,
+         email: decodedToken.email,
+         role: decodedToken.role
+       };
+       next();
+     } catch (err) {
+       if (err.name === "TokenExpiredError") {
+         return res.status(401).json({ message: "Token expired." });
+       }
+       return res.status(403).json({ message: "Invalid token." });
+     }
+}
